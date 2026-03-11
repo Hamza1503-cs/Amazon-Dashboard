@@ -7,9 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "build:cf": "opennextjs-cloudflare build",
-    "preview:cf": "opennextjs-cloudflare preview",
-    "deploy:cf": "opennextjs-cloudflare deploy"
+    "build:cf": "next build",
+    "deploy:cf": "wrangler pages deploy out --project-name amazon-dashboard"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
