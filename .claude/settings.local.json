@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -v && git --version)",
+      "Read(//Users/syedhamzaabbas/.ssh/**)",
+      "Bash(git config:*)",
+      "Bash(ssh -T git@github.com 2>&1)"
+    ]
+  }
+}
