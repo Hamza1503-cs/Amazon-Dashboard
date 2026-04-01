@@ -10,7 +10,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard/ppc-optimizer": "PPC Optimizer",
   "/dashboard/listing-ai": "Listing AI",
   "/dashboard/client-audit": "Client Audit",
-  "/dashboard/image-generator": "Image Generator",
+  "/dashboard/image-generator": "Listing Images Analyzer",
   "/dashboard/amazon-connect": "Connect Amazon Account",
 };
 

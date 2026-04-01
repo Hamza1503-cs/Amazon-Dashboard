@@ -8,6 +8,7 @@ import {
   AlertTriangle, Target, Clock, Download,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import PdfDateRangeModal from "@/components/PdfDateRangeModal";
 import { Button } from "@/components/ui/button";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -232,9 +233,10 @@ export default function ProfitCenterPage() {
   const [sortDir, setSortDir]      = useState<"asc"|"desc">("desc");
   const [selectedSku, setSelected] = useState<SkuRow | null>(null);
   const [copied, setCopied]        = useState<string | null>(null);
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
-  async function downloadPdf() {
+  async function downloadPdf(dateRange: { label: string; from: Date; to: Date }) {
     if (!reportRef.current) return;
     try {
       const { default: html2canvas } = await import("html2canvas");
@@ -243,9 +245,12 @@ export default function ProfitCenterPage() {
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`profit-center-${new Date().toISOString().slice(0, 10)}.pdf`);
+      pdf.setFontSize(9);
+      pdf.setTextColor(100);
+      pdf.text(`Profit Center Report | Period: ${dateRange.label}`, 10, 8);
+      const pdfHeight = Math.min((canvas.height * pdfWidth) / canvas.width, pdf.internal.pageSize.getHeight() - 15);
+      pdf.addImage(imgData, "PNG", 0, 12, pdfWidth, pdfHeight);
+      pdf.save(`profit-center-${dateRange.from.toISOString().slice(0, 10)}.pdf`);
     } catch (e) { alert("PDF failed: " + e); }
   }
 
@@ -278,7 +283,7 @@ export default function ProfitCenterPage() {
           <h2 className="text-2xl font-bold text-[#0F172A]">Profit Command Center</h2>
           <p className="text-sm text-[#94A3B8] mt-1">Margin analytics, cost breakdown, and AI optimization per SKU</p>
         </div>
-        <button onClick={downloadPdf} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#374151] border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] transition-colors">
+        <button onClick={() => setPdfModalOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#374151] border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] transition-colors">
           <Download size={14} />Export PDF
         </button>
       </div>
@@ -595,6 +600,12 @@ export default function ProfitCenterPage() {
         </SheetContent>
       </Sheet>
 
+      <PdfDateRangeModal
+        open={pdfModalOpen}
+        onClose={() => setPdfModalOpen(false)}
+        onConfirm={downloadPdf}
+        reportName="Profit Center"
+      />
     </div>
   );
 }

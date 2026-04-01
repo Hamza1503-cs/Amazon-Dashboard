@@ -6,6 +6,7 @@ import {
   AlertCircle, Loader2, CheckCircle2, X, ChevronLeft, ChevronRight,
   Globe, Languages, Package, Tag,
 } from "lucide-react";
+import PdfDateRangeModal from "@/components/PdfDateRangeModal";
 
 const MARKETPLACES = [
   { code: "US", label: "United States", flag: "🇺🇸", domain: "amazon.com" },
@@ -50,6 +51,7 @@ export default function ImageGeneratorPage() {
   const [lightbox, setLightbox] = useState<{ open: boolean; index: number }>({ open: false, index: 0 });
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
   const [activeTab, setActiveTab] = useState<"images" | "enhancements">("images");
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   async function fetchImages() {
@@ -68,7 +70,7 @@ export default function ImageGeneratorPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to fetch product");
+        throw new Error(data.error?.message || data.error || "Failed to fetch product");
       }
       setProduct({ ...data, marketplace });
       setSelectedImages(new Set(data.images.map((_: string, i: number) => i)));
@@ -99,7 +101,7 @@ export default function ImageGeneratorPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error?.message || data.error || "Enhancement failed");
       setEnhancements(data.enhancements);
     } catch (e: unknown) {
       setEnhancements(`Error generating enhancements: ${e instanceof Error ? e.message : "Unknown error"}`);
@@ -108,7 +110,7 @@ export default function ImageGeneratorPage() {
     }
   }
 
-  async function downloadReport() {
+  async function downloadReport(dateRange: { label: string; from: Date; to: Date }) {
     if (!reportRef.current || !product) return;
     try {
       const { default: html2canvas } = await import("html2canvas");
@@ -117,8 +119,11 @@ export default function ImageGeneratorPage() {
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.setFontSize(9);
+      pdf.setTextColor(100);
+      pdf.text(`Image Enhancement Report — ASIN: ${product.asin} | Period: ${dateRange.label}`, 10, 8);
+      const pdfHeight = Math.min((canvas.height * pdfWidth) / canvas.width, pdf.internal.pageSize.getHeight() - 15);
+      pdf.addImage(imgData, "PNG", 0, 12, pdfWidth, pdfHeight);
       pdf.save(`image-enhancement-${product.asin}.pdf`);
     } catch (e) {
       alert("PDF generation failed: " + e);
@@ -139,14 +144,14 @@ export default function ImageGeneratorPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-[#0F172A]">Image Generator</h2>
+          <h2 className="text-2xl font-bold text-[#0F172A]">Listing Images Analyzer</h2>
           <p className="text-sm text-[#94A3B8] mt-1">
             Fetch Amazon product images by ASIN and generate AI-powered enhancement recommendations
           </p>
         </div>
         {product && enhancements && (
           <button
-            onClick={downloadReport}
+            onClick={() => setPdfModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90"
             style={{ backgroundColor: "#2563EB" }}
           >
@@ -619,6 +624,12 @@ export default function ImageGeneratorPage() {
           </div>
         </div>
       )}
+      <PdfDateRangeModal
+        open={pdfModalOpen}
+        onClose={() => setPdfModalOpen(false)}
+        onConfirm={downloadReport}
+        reportName="Listing Images Analyzer"
+      />
     </div>
   );
 }

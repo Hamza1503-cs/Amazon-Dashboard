@@ -9,6 +9,13 @@ const CORS = {
 };
 
 function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify({ success: true, data }), {
+    status,
+    headers: { "Content-Type": "application/json", ...CORS },
+  });
+}
+
+function jsonRaw(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { "Content-Type": "application/json", ...CORS },
@@ -16,7 +23,7 @@ function json(data: unknown, status = 200) {
 }
 
 function error(message: string, status = 500) {
-  return new Response(JSON.stringify({ error: message }), {
+  return new Response(JSON.stringify({ success: false, error: { message } }), {
     status,
     headers: { "Content-Type": "application/json", ...CORS },
   });
@@ -237,7 +244,7 @@ async function handleAmazonImages(request: Request): Promise<Response> {
     const brand = brandMatch ? brandMatch[1].trim() : "Unknown Brand";
 
     if (images.length === 0) {
-      return json({
+      return jsonRaw({
         asin,
         title,
         brand,
@@ -248,7 +255,7 @@ async function handleAmazonImages(request: Request): Promise<Response> {
       });
     }
 
-    return json({ asin, title, brand, price, images: images.slice(0, 8) });
+    return jsonRaw({ asin, title, brand, price, images: images.slice(0, 8) });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return error(`Failed to fetch product data: ${message}`, 502);
@@ -352,7 +359,7 @@ async function handleEnhanceImages(request: Request, env: Env): Promise<Response
     }
 
     if (!env.ANTHROPIC_API_KEY) {
-      return json({ enhancements: getMockEnhancements(asin, title) });
+      return jsonRaw({ enhancements: getMockEnhancements(asin, title) });
     }
 
     const imageContent = imageUrls.slice(0, 4).map((url) => ({
@@ -409,7 +416,7 @@ Format your response as actionable, specific recommendations that a photographer
     const data: { content?: Array<{ text?: string }> } = await response.json();
     const analysisText = data.content?.[0]?.text ?? "";
 
-    return json({ enhancements: analysisText });
+    return jsonRaw({ enhancements: analysisText });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return error(`Enhancement failed: ${message}`, 500);

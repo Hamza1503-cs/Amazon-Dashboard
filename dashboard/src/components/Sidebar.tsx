@@ -19,7 +19,7 @@ const mainNav = [
   { label: "PPC Optimizer", href: "/dashboard/ppc-optimizer",    icon: Target          },
   { label: "Listing AI",    href: "/dashboard/listing-ai",       icon: Bot             },
   { label: "Client Audit",  href: "/dashboard/client-audit",     icon: ClipboardList   },
-  { label: "Image Generator", href: "/dashboard/image-generator", icon: ImageIcon, sub: true },
+  { label: "Listing Images Analyzer", href: "/dashboard/image-generator", icon: ImageIcon },
 ];
 
 const connectNav = [
@@ -117,8 +117,8 @@ export default function Sidebar() {
 
       {/* Main Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {mainNav.map(({ label, href, icon, sub }) => (
-          <NavItem key={href} label={label} href={href} icon={icon} sub={sub} />
+        {mainNav.map(({ label, href, icon }) => (
+          <NavItem key={href} label={label} href={href} icon={icon} />
         ))}
 
         {/* Divider */}

@@ -14,6 +14,7 @@ import {
   SheetDescription, SheetCloseButton, SheetBody, SheetFooter,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import PdfDateRangeModal from "@/components/PdfDateRangeModal";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -140,9 +141,10 @@ export default function PPCOptimizerPage() {
   const [sortDir, setSortDir]     = useState<"asc"|"desc">("desc");
   const [selected, setSelected]   = useState<Campaign | null>(null);
   const [activeTab, setActiveTab] = useState<"bids"|"waste">("bids");
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
-  async function downloadPdf() {
+  async function downloadPdf(dateRange: { label: string; from: Date; to: Date }) {
     if (!reportRef.current) return;
     try {
       const { default: html2canvas } = await import("html2canvas");
@@ -151,9 +153,12 @@ export default function PPCOptimizerPage() {
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`ppc-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+      pdf.setFontSize(9);
+      pdf.setTextColor(100);
+      pdf.text(`PPC Optimizer Report | Period: ${dateRange.label}`, 10, 8);
+      const pdfHeight = Math.min((canvas.height * pdfWidth) / canvas.width, pdf.internal.pageSize.getHeight() - 15);
+      pdf.addImage(imgData, "PNG", 0, 12, pdfWidth, pdfHeight);
+      pdf.save(`ppc-report-${dateRange.from.toISOString().slice(0, 10)}.pdf`);
     } catch (e) { alert("PDF failed: " + e); }
   }
 
@@ -185,7 +190,7 @@ export default function PPCOptimizerPage() {
           <h2 className="text-2xl font-bold text-[#0F172A]">PPC Optimizer</h2>
           <p className="text-sm text-[#94A3B8] mt-1">Monitor, diagnose, and optimize Amazon Sponsored Ads campaigns</p>
         </div>
-        <button onClick={downloadPdf} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#374151] border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] transition-colors">
+        <button onClick={() => setPdfModalOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#374151] border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] transition-colors">
           <Download size={14} />Export PDF
         </button>
       </div>
@@ -485,6 +490,12 @@ export default function PPCOptimizerPage() {
         </SheetContent>
       </Sheet>
 
+      <PdfDateRangeModal
+        open={pdfModalOpen}
+        onClose={() => setPdfModalOpen(false)}
+        onConfirm={downloadPdf}
+        reportName="PPC Optimizer"
+      />
     </div>
   );
 }

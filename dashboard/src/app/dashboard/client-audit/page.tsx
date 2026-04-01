@@ -11,6 +11,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
   SheetCloseButton, SheetBody, SheetFooter,
 } from "@/components/ui/sheet";
+import PdfDateRangeModal from "@/components/PdfDateRangeModal";
 
 interface Client {
   name: string;
@@ -184,6 +185,7 @@ export default function ClientAuditPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [runningAudit, setRunningAudit] = useState(false);
   const [auditDone, setAuditDone] = useState(false);
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   const filtered = clients.filter((c) => {
@@ -203,7 +205,7 @@ export default function ClientAuditPage() {
     setTimeout(() => setAuditDone(false), 3000);
   }
 
-  async function downloadPdf() {
+  async function downloadPdf(dateRange: { label: string; from: Date; to: Date }) {
     if (!reportRef.current) return;
     try {
       const { default: html2canvas } = await import("html2canvas");
@@ -212,9 +214,12 @@ export default function ClientAuditPage() {
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`client-audit-${new Date().toISOString().slice(0, 10)}.pdf`);
+      pdf.setFontSize(9);
+      pdf.setTextColor(100);
+      pdf.text(`Client Audit Report | Period: ${dateRange.label}`, 10, 8);
+      const pdfHeight = Math.min((canvas.height * pdfWidth) / canvas.width, pdf.internal.pageSize.getHeight() - 15);
+      pdf.addImage(imgData, "PNG", 0, 12, pdfWidth, pdfHeight);
+      pdf.save(`client-audit-${dateRange.from.toISOString().slice(0, 10)}.pdf`);
     } catch (e) {
       alert("PDF generation failed: " + e);
     }
@@ -339,7 +344,7 @@ export default function ClientAuditPage() {
             )}
           </button>
           <button
-            onClick={downloadPdf}
+            onClick={() => setPdfModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#374151] border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] transition-colors"
           >
             <Download size={14} />
@@ -674,6 +679,12 @@ export default function ClientAuditPage() {
           })()}
         </SheetContent>
       </Sheet>
+      <PdfDateRangeModal
+        open={pdfModalOpen}
+        onClose={() => setPdfModalOpen(false)}
+        onConfirm={downloadPdf}
+        reportName="Client Audit"
+      />
     </div>
   );
 }

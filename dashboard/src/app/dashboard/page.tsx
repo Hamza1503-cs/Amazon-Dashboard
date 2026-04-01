@@ -6,6 +6,7 @@ import {
   ArrowUpRight, ArrowDownRight, Package, Zap, Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import PdfDateRangeModal from "@/components/PdfDateRangeModal";
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 
@@ -142,9 +143,10 @@ const RANGE_SLICE: Record<Range, number> = { "7D": 7, "14D": 14, "30D": 30 };
 
 export default function OverviewPage() {
   const [range, setRange] = useState<Range>("30D");
+  const [pdfModalOpen, setPdfModalOpen] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
-  async function downloadPdf() {
+  async function downloadPdf(dateRange: { label: string; from: Date; to: Date }) {
     if (!reportRef.current) return;
     try {
       const { default: html2canvas } = await import("html2canvas");
@@ -153,9 +155,12 @@ export default function OverviewPage() {
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`overview-report-${new Date().toISOString().slice(0, 10)}.pdf`);
+      pdf.setFontSize(9);
+      pdf.setTextColor(100);
+      pdf.text(`Overview Report | Period: ${dateRange.label}`, 10, 8);
+      const pdfHeight = Math.min((canvas.height * pdfWidth) / canvas.width, pdf.internal.pageSize.getHeight() - 15);
+      pdf.addImage(imgData, "PNG", 0, 12, pdfWidth, pdfHeight);
+      pdf.save(`overview-report-${dateRange.from.toISOString().slice(0, 10)}.pdf`);
     } catch (e) { alert("PDF failed: " + e); }
   }
 
@@ -195,7 +200,7 @@ export default function OverviewPage() {
           <p className="text-sm text-[#94A3B8] mt-1">Your key metrics at a glance — last {range}</p>
         </div>
         <button
-          onClick={downloadPdf}
+          onClick={() => setPdfModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#374151] border border-[#E2E8F0] rounded-lg hover:bg-[#F8FAFC] transition-colors"
         >
           <Download size={14} />
@@ -390,6 +395,12 @@ export default function OverviewPage() {
         </ul>
       </div>
       </div>
+      <PdfDateRangeModal
+        open={pdfModalOpen}
+        onClose={() => setPdfModalOpen(false)}
+        onConfirm={downloadPdf}
+        reportName="Overview"
+      />
     </div>
   );
 }
