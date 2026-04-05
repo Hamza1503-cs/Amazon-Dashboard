@@ -83,12 +83,13 @@ export default function DataUploadPage() {
         body: formData,
       });
 
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: { message: `Server error ${res.status}` } }));
-        throw new Error(err?.error?.message ?? `Server error ${res.status}`);
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        throw new Error(json?.error?.message ?? `Server error ${res.status}`);
       }
 
-      const data: { report_type: string; filename: string; row_count: number; rows: unknown[] } = await res.json();
+      const data: { report_type: string; filename: string; row_count: number; rows: unknown[] } = json.data;
 
       // Apply user-selected type override
       const finalType = reportType !== "auto" ? reportType : data.report_type;
