@@ -360,7 +360,7 @@ export default function ProfitCenterPage() {
                       className="hover:bg-[#F8FAFC] cursor-pointer transition-colors"
                     >
                       <td className="px-4 py-3">
-                        <Badge variant="secondary" className="font-mono text-xs">
+                        <Badge variant="outline" className="font-mono text-xs">
                           {p.asin}
                         </Badge>
                       </td>
