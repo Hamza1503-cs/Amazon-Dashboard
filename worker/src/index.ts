@@ -1,3 +1,5 @@
+import * as XLSX from "xlsx";
+
 export interface Env {
   ANTHROPIC_API_KEY: string;
 }
@@ -112,8 +114,24 @@ function cleanAsin(s: string | undefined): string {
   return /^B[A-Z0-9]{9}$/.test(c) ? c : "";
 }
 
+function parseExcelBuffer(buffer: ArrayBuffer): string[][] {
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) return [];
+  const sheet = workbook.Sheets[sheetName];
+  const raw: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" }) as unknown[][];
+  return raw
+    .map((row) => row.map((cell) => String(cell ?? "").trim()))
+    .filter((row) => row.some((c) => c.length > 0));
+}
+
+function isExcelFile(filename: string): boolean {
+  const lower = filename.toLowerCase();
+  return lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".xlsm") || lower.endsWith(".xlsb");
+}
+
 async function handleProcessCSV(request: Request): Promise<Response> {
-  let text = "";
+  let rows: string[][] = [];
   let filename = "upload.csv";
 
   const contentType = request.headers.get("content-type") ?? "";
@@ -121,15 +139,24 @@ async function handleProcessCSV(request: Request): Promise<Response> {
     const form = await request.formData();
     const file = form.get("file");
     if (!file || typeof file === "string") return error("No file uploaded", 400);
-    text = await (file as File).text();
-    filename = (file as File).name || filename;
+    const f = file as File;
+    filename = f.name || filename;
+
+    if (isExcelFile(filename)) {
+      const buffer = await f.arrayBuffer();
+      if (!buffer.byteLength) return error("Empty file", 400);
+      rows = parseExcelBuffer(buffer);
+    } else {
+      const text = await f.text();
+      if (!text.trim()) return error("Empty file", 400);
+      rows = parseCSVText(text);
+    }
   } else {
-    text = await request.text();
+    const text = await request.text();
+    if (!text.trim()) return error("Empty file", 400);
+    rows = parseCSVText(text);
   }
 
-  if (!text.trim()) return error("Empty file", 400);
-
-  const rows = parseCSVText(text);
   if (rows.length < 2) return error("CSV has no data rows", 400);
 
   const headers = rows[0];

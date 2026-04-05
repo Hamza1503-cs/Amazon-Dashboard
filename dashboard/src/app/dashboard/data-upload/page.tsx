@@ -57,14 +57,20 @@ export default function DataUploadPage() {
 
   useEffect(() => { setJobs(localStore.getUploads()); }, []);
 
+  const isValidFile = (f: File) => {
+    const name = f.name.toLowerCase();
+    return name.endsWith(".csv") || name.endsWith(".txt") ||
+           name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".xlsm");
+  };
+
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
     const dropped = e.dataTransfer.files[0];
-    if (dropped && (dropped.name.endsWith(".csv") || dropped.name.endsWith(".txt"))) {
+    if (dropped && isValidFile(dropped)) {
       setFile(dropped); setError(null); setUploadResult(null);
     } else {
-      setError("Only CSV files are supported.");
+      setError("Only CSV and Excel files (.csv, .xlsx, .xls) are supported.");
     }
   }, []);
 
@@ -190,11 +196,12 @@ export default function DataUploadPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv,.txt"
+                accept=".csv,.txt,.xlsx,.xls,.xlsm"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) { setFile(f); setError(null); setUploadResult(null); }
+                  if (f && isValidFile(f)) { setFile(f); setError(null); setUploadResult(null); }
+                  else if (f) { setError("Only CSV and Excel files (.csv, .xlsx, .xls) are supported."); }
                 }}
               />
               {file ? (
@@ -220,7 +227,7 @@ export default function DataUploadPage() {
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-semibold text-[#0F172A]">Drop your CSV here</p>
-                    <p className="text-xs text-[#94A3B8] mt-0.5">or click to browse · CSV files up to 50 MB</p>
+                    <p className="text-xs text-[#94A3B8] mt-0.5">or click to browse · CSV or Excel files up to 50 MB</p>
                   </div>
                 </>
               )}
