@@ -52,35 +52,36 @@ function detectSeparator(firstLine: string): string {
 function parseCSVText(text: string): string[][] {
   const cleaned = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
   if (!cleaned) return [];
-  const sep = detectSeparator(cleaned.split("\n")[0]);
-  const rows: string[][] = [];
-  let i = 0;
-  while (i <= cleaned.length) {
-    const row: string[] = [];
-    while (i <= cleaned.length && cleaned[i] !== "\n") {
-      if (cleaned[i] === '"') {
-        i++;
-        let field = "";
-        while (i < cleaned.length) {
-          if (cleaned[i] === '"' && cleaned[i + 1] === '"') { field += '"'; i += 2; }
-          else if (cleaned[i] === '"') { i++; break; }
-          else { field += cleaned[i]; i++; }
+  const lines = cleaned.split("\n");
+  if (!lines.length) return [];
+  const sep = detectSeparator(lines[0]);
+
+  return lines
+    .map((line) => {
+      const fields: string[] = [];
+      let i = 0;
+      while (i <= line.length) {
+        if (i === line.length) { fields.push(""); break; }
+        if (line[i] === '"') {
+          i++;
+          let field = "";
+          while (i < line.length) {
+            if (line[i] === '"' && line[i + 1] === '"') { field += '"'; i += 2; }
+            else if (line[i] === '"') { i++; break; }
+            else { field += line[i]; i++; }
+          }
+          fields.push(field.trim());
+          if (line[i] === sep) i++;
+        } else {
+          let j = i;
+          while (j < line.length && line[j] !== sep) j++;
+          fields.push(line.slice(i, j).trim());
+          i = j + 1;
         }
-        row.push(field);
-        if (cleaned[i] === sep) i++;
-      } else {
-        let j = i;
-        while (j < cleaned.length && cleaned[j] !== sep && cleaned[j] !== "\n") j++;
-        row.push(cleaned.slice(i, j).trim());
-        i = j;
-        if (cleaned[i] === sep) i++;
       }
-    }
-    if (cleaned[i] === "\n") i++;
-    else i++;
-    if (row.some((c) => c.length > 0)) rows.push(row);
-  }
-  return rows;
+      return fields;
+    })
+    .filter((row) => row.some((c) => c.length > 0));
 }
 
 function detectReportType(headers: string[]): string {
